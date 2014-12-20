@@ -5,6 +5,9 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * 
  * <b>Future Task 예제</b><br/>
@@ -24,6 +27,8 @@ import java.util.concurrent.FutureTask;
  */
 public class FutureTaskTest {
 	
+	final Logger LOG = LoggerFactory.getLogger(FutureTaskTest.class);
+	
 	private final FutureTask<IFResult> task = 
 			new FutureTask<IFResult>(new Callable<IFResult>(){
 
@@ -40,18 +45,20 @@ public class FutureTaskTest {
 	public IFResult get() throws Exception{
 		try{
 			return task.get();
-		}catch(InterruptedException e){
+		}catch(InterruptedException e){		//Interrupted 되었지만 Critical한 작업이므로 재시도한다.
 			return get();
-		}catch(ExecutionException e){
+		}catch(ExecutionException e){		//실행오류 발생
 			throw new Exception(e);
-		}catch(CancellationException e){
+		}catch(CancellationException e){	//비동기 작업을 취소시킬 경우. 
 			throw new Exception(e);
 		}
 	}
 	
 	private IFResult connectAndGetResult(){
 		IFResult result = new IFResult();
+		LOG.debug("processing connectAndGetResult...");
 		try{	Thread.sleep(1000);	}catch(InterruptedException ignored){}
+		LOG.debug("finished connectAndGetResult...");
 		result.request="key";
 		result.response="value";
 		return result;
@@ -60,6 +67,15 @@ public class FutureTaskTest {
 	public static class IFResult{
 		String request;
 		String response;
+	}
+	
+	//TEST
+	public static void main(String[] args) throws Exception{
+		FutureTaskTest test = new FutureTaskTest();
+		test.start();
+		IFResult result = test.get();
+		
+		System.out.println("result -> "+result.request+", "+result.response);
 	}
 
 }
